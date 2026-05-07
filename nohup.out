@@ -1,0 +1,3 @@
+Error from server (NotFound): services "argocd-server" not found
+Unable to listen on port 8080: Listeners failed to create with the following errors: [unable to create listener: Error listen tcp4 0.0.0.0:8080: bind: address already in use]
+error: unable to listen on any of the requested ports: [{8080 8080}]
