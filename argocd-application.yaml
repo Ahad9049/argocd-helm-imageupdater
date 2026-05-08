@@ -4,16 +4,16 @@ metadata:
   name: flask-todo
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: "flask-todo=abdulahad9049/flask-todo-app"
-    argocd-image-updater.argoproj.io/flask-todo.update-strategy: "latest"
-    argocd-image-updater.argoproj.io/flask-todo.allow-tags: "regexp:^v[0-9]+$"
+    argocd-image-updater.argoproj.io/image-list: "flask-todo=abdulahad9049/flask-todo-app-helm-argocd"
+    argocd-image-updater.argoproj.io/flask-todo.update-strategy: "semver"
+    argocd-image-updater.argoproj.io/flask-todo.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
   source:
     repoURL: https://github.com/Ahad9049/argocd-helm-imageupdater.git
-    path: flask-todo-helm
+    path: flask-app-helm
     targetRevision: main
     helm:
       valueFiles:
