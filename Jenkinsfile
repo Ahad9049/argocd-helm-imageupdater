@@ -3,15 +3,15 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        IMAGE_NAME            = "abdulahad9049/flask-todo-app-helm-argocd"  
+        IMAGE_NAME            = "abdulahad9049/flask-todo-app-helm-argocd"
     }
 
     stages {
 
         stage('Clone') {
             steps {
-                git url: 'https://github.com/Ahad9049/flask-todo-app.git',  
-                    branch: 'main',                                     
+                git url: 'https://github.com/Ahad9049/flask-todo-app.git',
+                    branch: 'main',
                     credentialsId: 'github-credentials'
             }
         }
@@ -21,46 +21,40 @@ pipeline {
                 script {
                     sh 'git fetch --tags --force'
 
-                    def tag = sh(
-                        script: "git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || echo 'v0.0.0'",
+                    def latestTag = sh(
+                        script: "git tag --sort=-v:refname | grep -E '^v[0-9]+\\.[0-9]+\\.[0-9]+\$' | head -1 || echo 'v1.0.0'",
                         returnStdout: true
                     ).trim()
 
-                    def isExact = sh(
-                        script: "git describe --exact-match --tags HEAD 2>/dev/null && echo yes || echo no",
-                        returnStdout: true
-                    ).trim()
+                    def parts = latestTag.replaceFirst(/^v/, '').tokenize('.')
+                    def major = parts[0].toInteger()
+                    def minor = parts[1].toInteger()
+                    def patch = parts[2].toInteger() + 1
 
-                    def version = tag.replaceFirst(/^v/, '')
-                    if (isExact == 'no') {
-                        def sha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                        version = "${version}-${BUILD_NUMBER}-${sha}"
-                    }
-
-                    env.VERSION = version
-                    echo "Building version: ${env.VERSION}"
+                    env.VERSION = "v${major}.${minor}.${patch}"
+                    echo "Version: ${env.VERSION}"
                 }
             }
         }
 
         stage('Build') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:${VERSION} -t ${IMAGE_NAME}:latest ."
+                sh 'docker build -t ' + env.IMAGE_NAME + ':' + env.VERSION + ' -t ' + env.IMAGE_NAME + ':latest .'
             }
         }
 
         stage('Push') {
             steps {
                 sh 'echo "${DOCKERHUB_CREDENTIALS_PSW}" | docker login -u "${DOCKERHUB_CREDENTIALS_USR}" --password-stdin'
-                sh "docker push ${IMAGE_NAME}:${VERSION}"
-                sh "docker push ${IMAGE_NAME}:latest"
+                sh 'docker push ' + env.IMAGE_NAME + ':' + env.VERSION
+                sh 'docker push ' + env.IMAGE_NAME + ':latest'
             }
         }
     }
 
     post {
         always {
-            sh "docker rmi ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest || true"
+            sh 'docker rmi ' + env.IMAGE_NAME + ':' + env.VERSION + ' ' + env.IMAGE_NAME + ':latest || true'
             sh 'docker logout'
         }
         success { echo "✅ Pushed ${IMAGE_NAME}:${VERSION}" }
