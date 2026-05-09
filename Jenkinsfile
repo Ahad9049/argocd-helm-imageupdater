@@ -16,27 +16,31 @@ pipeline {
             }
         }
 
-        stage('Version') {
+       stage('Version') {
             steps {
-                script {
-                    sh 'git fetch --tags --force'
+    script {
+            sh 'git fetch --tags --force'
 
-                    def latestTag = sh(
-                        script: "git tag --sort=-v:refname | grep -E '^v[0-9]+\\.[0-9]+\\.[0-9]+\$' | head -1 || echo 'v1.0.0'",
-                        returnStdout: true
-                    ).trim()
+            def latestTag = sh(
+                script: "git tag --sort=-v:refname | grep -E '^v[0-9]+\\.[0-9]+\\.[0-9]+\$' | head -1",
+                returnStdout: true
+            ).trim()
 
-                    def parts = latestTag.replaceFirst(/^v/, '').tokenize('.')
-                    def major = parts[0].toInteger()
-                    def minor = parts[1].toInteger()
-                    def patch = parts[2].toInteger() + 1
-
-                    env.VERSION = "v${major}.${minor}.${patch}"
-                    echo "Version: ${env.VERSION}"
-                }
+            // If no tags exist start from v1.0.0
+            if (!latestTag) {
+                latestTag = 'v1.0.0'
             }
-        }
 
+            def parts = latestTag.replaceFirst(/^v/, '').tokenize('.')
+            def major = parts[0].toInteger()
+            def minor = parts[1].toInteger()
+            def patch = parts[2].toInteger() + 1
+
+            env.VERSION = "v${major}.${minor}.${patch}"
+            echo "Version: ${env.VERSION}"
+        }
+    }
+}
         stage('Build') {
             steps {
                 sh 'docker build -t ' + env.IMAGE_NAME + ':' + env.VERSION + ' -t ' + env.IMAGE_NAME + ':latest .'
